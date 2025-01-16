@@ -38,8 +38,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 # =============================================================================
+# TODO: Do we want to version the logger in the same way as the rest of RAPIDS? I expect it to be
+# relatively static and not something we need to re-release often. Furthermore, we won't be building
+# packages of it since we only ever need it cloned by CPM during the builds of other packages.
 file(READ "${CMAKE_CURRENT_LIST_DIR}/VERSION" _rapids_version)
-if(_rapids_version MATCHES [[^([0-9][0-9]?)\.([0-9][0-9]?)\.([0-9][0-9])]])
+if(_rapids_version MATCHES [[^([0-9][0-9])\.([0-9][0-9])\.([0-9][0-9])]])
   set(RAPIDS_VERSION_MAJOR "${CMAKE_MATCH_1}")
   set(RAPIDS_VERSION_MINOR "${CMAKE_MATCH_2}")
   set(RAPIDS_VERSION_PATCH "${CMAKE_MATCH_3}")
@@ -49,7 +52,8 @@ else()
   string(REPLACE "\n" "\n  " _rapids_version_formatted "  ${_rapids_version}")
   message(
     FATAL_ERROR
-      "Could not determine RAPIDS version. Contents of VERSION file:\n${_rapids_version_formatted}")
+      "Could not determine RAPIDS version. Contents of VERSION file:\n${_rapids_version_formatted}"
+  )
 endif()
 
 set(
