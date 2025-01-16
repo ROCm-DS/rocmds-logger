@@ -27,14 +27,12 @@
 
 # cmake-lint: disable=R0915
 
-include_guard(GLOBAL)
-
 cmake_minimum_required(VERSION 3.26.4 FATAL_ERROR)
 
 include(rapids_config.cmake)
-
 include(rapids-cmake)
 include(rapids-cpm)
+include(rapids-export)
 
 project(
   RAPIDS_LOGGER
@@ -45,67 +43,105 @@ rapids_cmake_build_type(Release)
 
 rapids_cpm_init()
 
-include("rapids_make_logger.cmake")
+option(RAPIDS_LOGGER_HIDE_ALL_SPDLOG_SYMBOLS "Build and link to spdlog in a way that maximizes all symbol hiding" ON)
 
-include(GNUInstallDirs)
+include(CMakeDependentOption)
+# If we are hiding all spdlog symbols then we need to use the bundled fmt
+# library, so this option depends on what the above is set to.
+cmake_dependent_option(RAPIDS_LOGGER_FMT_OPTION "The fmt option to use when building spdlog." "EXTERNAL_FMT_HO" "NOT RAPIDS_LOGGER_HIDE_ALL_SPDLOG_SYMBOLS" "BUNDLED")
 
-install(FILES
-        "${CMAKE_CURRENT_LIST_DIR}/rapids_make_logger.cmake"
-        "${CMAKE_CURRENT_LIST_DIR}/logger.hpp.in"
-        "${CMAKE_CURRENT_LIST_DIR}/logger.cpp.in"
-        "${CMAKE_CURRENT_LIST_DIR}/logger_impl.hpp.in"
-        DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
+# TODO: For Spark-RAPIDS we will have to support building this as a static
+# library. We may need some additional testing to make sure that will work.
+add_library(
+    rapids_logger
+    src/logger.cpp
+)
+add_library(rapids_logger::rapids_logger ALIAS rapids_logger)
+target_include_directories(
+  rapids_logger
+  PUBLIC "$<BUILD_INTERFACE:${RAPIDS_LOGGER_SOURCE_DIR}/include>"
+         "$<INSTALL_INTERFACE:include>")
+set_target_properties(
+  rapids_logger
+  PROPERTIES BUILD_RPATH "\$ORIGIN"
+             INSTALL_RPATH "\$ORIGIN"
+             # set target compile options
+             CXX_STANDARD 17
+             CXX_STANDARD_REQUIRED ON
+             CXX_VISIBILITY_PRESET hidden
+             POSITION_INDEPENDENT_CODE ON
+)
+
+# Get spdlog
+include(${rapids-cmake-dir}/cpm/spdlog.cmake)
+if(RAPIDS_LOGGER_HIDE_ALL_SPDLOG_SYMBOLS)
+  set(CPM_DOWNLOAD_spdlog ON)
+  # The override file sets EXCLUDE_FROM_ALL to ON. There is no way to do that
+  # directly via rapids_cpm_spdlog right now because it explicitly passes in a
+  # value to the rapids_cpm_find call that will override the same version of
+  # the argument passed here (or at least, it's order-dependent which is
+  # selected so we're at the mercy of the rapids-cmake implementation). We
+  # should generalize the rapids_cpm_* functions to support this natively.aasdfsd
+  include(${rapids-cmake-dir}/cpm/package_override.cmake)
+  rapids_cpm_package_override(cmake/spdlog_override.cmake)
+  rapids_cpm_spdlog(FMT_OPTION ${RAPIDS_LOGGER_FMT_OPTION}
+      CPM_ARGS
+      OPTIONS "BUILD_SHARED_LIBS OFF"
+              "SPDLOG_BUILD_SHARED OFF"
+   )
+   target_link_options(rapids_logger PRIVATE "LINKER:--exclude-libs,libspdlog")
+else()
+  rapids_cpm_spdlog(FMT_OPTION ${RAPIDS_LOGGER_FMT_OPTION}
+      BUILD_EXPORT_SET rapids-logger-exports
+      INSTALL_EXPORT_SET rapids-logger-exports
+   )
+endif()
+target_link_libraries(rapids_logger PRIVATE spdlog::spdlog)
+
+rapids_cmake_install_lib_dir(lib_dir)
+install(
+  TARGETS rapids_logger
+  DESTINATION ${lib_dir}
+  EXPORT rapids-logger-exports
+)
+install(DIRECTORY ${RAPIDS_LOGGER_SOURCE_DIR}/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+set(doc_string
+    [=[
+Provide targets for the rapids-logger library.
+
+rapids-logger provides an ABI stable interface to spdlog-like logging that can
+be safely embedded into complex environments where exposing spdlog symbols or
+having it as a public dependency makes stable environment difficult to create
+or maintain safely.
+
+Imported Targets
+^^^^^^^^^^^^^^^^
+
+If rapids_logger is found, this module defines the following IMPORTED GLOBAL
+targets:
+
+ rapids_logger::rapids_logger             - The rapids_logger library.
+
+    ]=]
+)
+rapids_export(
+  INSTALL rapids_logger
+  EXPORT_SET rapids-logger-exports
+  GLOBAL_TARGETS rapids_logger
+  NAMESPACE rapids_logger::
+  DOCUMENTATION doc_string
+)
+rapids_export(
+  BUILD rapids_logger
+  EXPORT_SET rapids-logger-exports
+  GLOBAL_TARGETS rapids_logger
+  NAMESPACE rapids_logger::
+  DOCUMENTATION doc_string
 )
 
 include(CMakePackageConfigHelpers)
 
-
-string(TOLOWER "${PROJECT_NAME}" _proj_lc)
-set(_ver_file "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake")
-
-write_basic_package_version_file(
-        "${_ver_file}"
-        VERSION ${PROJECT_VERSION}
-        COMPATIBILITY AnyNewerVersion
-)
-
-# Install both variants without running write_basic twice:
-install(FILES
-        "${_ver_file}"
-        DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
-        RENAME "${PROJECT_NAME}-config-version.cmake"
-)
-install(FILES
-        "${_ver_file}"
-        DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
-        RENAME "${_proj_lc}-config-version.cmake"
-)
-
-configure_package_config_file(
-        "${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_NAME}-config.cmake.in"
-        "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake"
-        INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
-        NO_CHECK_REQUIRED_COMPONENTS_MACRO
-)
-
-install(FILES
-        "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake"
-        "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake"
-        DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
-)
-
-install(FILES
-        "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake"
-        DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
-        RENAME "${PROJECT_NAME}Config.cmake"
-)
-install(FILES
-        "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake"
-        DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
-        RENAME "${_proj_lc}-config.cmake"
-)
-
-include(InstallRequiredSystemLibraries)
 set(CPACK_GENERATOR "DEB;TGZ;RPM")
 set(CPACK_PACKAGE_NAME "${PROJECT_NAME}")
 set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
