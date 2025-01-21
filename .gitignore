@@ -1,4 +1,7 @@
 *.swp
+build/
+*.whl
+.cache
 
 # Documentation build artifacts
 docs/sphinx/_build/
