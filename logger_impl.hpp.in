@@ -25,10 +25,12 @@
 #include <unistd.h>
 
 // Start hiding before including spdlog headers.
+#if defined(__GNUG__) && !defined(__clang__)
 #pragma GCC visibility push(hidden)
 // This issue claims to have been resolved in gcc 8, but we still seem to encounter it here.
 // The code compiles and links and all tests pass, and nm shows symbols resolved as expected.
 // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80947
+#endif
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wattributes"
 
@@ -259,5 +261,7 @@ const logger::sink_vector& logger::sinks() const { return sinks_; }
 logger::sink_vector& logger::sinks() { return sinks_; }
 
 }  // namespace @_RAPIDS_LOGGER_NAMESPACE@
+#if defined(__GNUG__) && !defined(__clang__)
 // This visibility pragma must be here so that both our logger types and those coming from includes are hidden.
 #pragma GCC visibility pop
+#endif
