@@ -38,8 +38,7 @@ include(rapids-cpm)
 
 project(
   RAPIDS_LOGGER
-  # TODO: Determine appropriate versioning.
-  VERSION 0.0.1
+  VERSION ${RAPIDS_VERSION}
   LANGUAGES CXX)
 
 rapids_cmake_build_type(Release)

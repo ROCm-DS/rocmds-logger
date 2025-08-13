@@ -1,1 +1,5 @@
 *.swp
+
+# Documentation build artifacts
+docs/sphinx/_build/
+docs/doxygen/
