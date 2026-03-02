@@ -12,7 +12,7 @@
 # the License.
 # =============================================================================
 
-# Modifications Copyright (c) 2025 Advanced Micro Devices, Inc. Permission is hereby granted,
+# Modifications Copyright (c) 2025-26 Advanced Micro Devices, Inc. Permission is hereby granted,
 # free of charge, to any person obtaining a copy of this software and associated documentation files
 # (the "Software"), to deal in the Software without restriction, including without limitation the
 # rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
@@ -192,7 +192,7 @@ rapids_export(
 include(CMakePackageConfigHelpers)
 
 set(CPACK_GENERATOR "DEB;TGZ;RPM")
-set(CPACK_PACKAGE_NAME "${PROJECT_NAME}")
+set(CPACK_PACKAGE_NAME "rocmds-logger")
 set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
 set(CPACK_PACKAGING_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Grant Pinkert gpinkert@amd.com")
