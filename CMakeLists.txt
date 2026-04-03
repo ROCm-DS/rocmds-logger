@@ -192,7 +192,7 @@ rapids_export(
 include(CMakePackageConfigHelpers)
 
 set(CPACK_GENERATOR "DEB;TGZ;RPM")
-set(CPACK_PACKAGE_NAME "rocmds-logger")
+set(CPACK_PACKAGE_NAME "amd-rocmds-logger")
 set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
 set(CPACK_PACKAGING_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Grant Pinkert gpinkert@amd.com")
