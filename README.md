@@ -25,7 +25,7 @@
 > This release is an *early-access* software technology preview. Running production workloads is *not* recommended.
 
 > [!NOTE]
-> This ROCm&trade; port is derived from the NVIDIA RAPIDS&reg; rapids-logger project (**commit: 8968ab3337f31c845d4e3bf6c55ae89242ded22b**). It aims to
+> This ROCm&trade; port is derived from the NVIDIA RAPIDS&reg; rapids-logger project (**commit: 46070bb255482f0782ca840ae45de9354380e298**). It aims to
 > follow the latter's directory structure, file naming and API naming as closely as possible to minimize porting
 > friction for users that are interested in using both projects.
 
