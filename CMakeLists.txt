@@ -82,6 +82,11 @@ set_target_properties(
              CXX_STANDARD_REQUIRED ON
              CXX_VISIBILITY_PRESET hidden
              POSITION_INDEPENDENT_CODE ON
+             # RAPIDS_LOGGER_EXPORT is defined as an ELF visibility attribute with no
+             # MSVC equivalent, so a Windows build of this shared library exports
+             # nothing and every consumer fails to link. Let CMake generate the
+             # export table there; the property is ignored on other platforms.
+             WINDOWS_EXPORT_ALL_SYMBOLS ON
 )
 
 # Get spdlog
