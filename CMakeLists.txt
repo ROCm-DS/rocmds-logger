@@ -82,6 +82,11 @@ set_target_properties(
              CXX_STANDARD_REQUIRED ON
              CXX_VISIBILITY_PRESET hidden
              POSITION_INDEPENDENT_CODE ON
+             # RAPIDS_LOGGER_EXPORT is defined as an ELF visibility attribute with no
+             # MSVC equivalent, so a Windows build of this shared library exports
+             # nothing and every consumer fails to link. Let CMake generate the
+             # export table there; the property is ignored on other platforms.
+             WINDOWS_EXPORT_ALL_SYMBOLS ON
 )
 
 # Get spdlog
@@ -100,7 +105,15 @@ if(RAPIDS_LOGGER_HIDE_ALL_SPDLOG_SYMBOLS)
                                            "SPDLOG_BUILD_SHARED OFF"
   )
   set_target_properties(spdlog PROPERTIES CXX_VISIBILITY_PRESET hidden POSITION_INDEPENDENT_CODE ON)
-  target_link_options(rapids_logger PRIVATE "LINKER:--exclude-libs,libspdlog")
+  # --exclude-libs is a GNU/ELF linker facility. MSVC-style link drivers (link.exe
+  # and lld-link, which is what clang-cl uses) do not accept it, and CMake's LINKER:
+  # prefix has no translation for them, so both tokens reach the linker verbatim and
+  # it tries to open "libspdlog" as an input file. Nothing is lost by skipping it:
+  # PE/COFF exports nothing unless it is explicitly dllexported, so spdlog symbols
+  # are already hidden there. MinGW keeps the flag, since it links with GNU ld.
+  if(NOT MSVC)
+    target_link_options(rapids_logger PRIVATE "LINKER:--exclude-libs,libspdlog")
+  endif()
 else()
   rapids_cpm_spdlog(
     FMT_OPTION ${RAPIDS_LOGGER_FMT_OPTION}
